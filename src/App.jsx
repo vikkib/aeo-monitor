@@ -230,13 +230,14 @@ function SearchTests() {
 
 function ContentAnalysis() {
   const [content, setContent] = useState('');
+  const [url, setUrl] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const analyze = async () => {
-    if (!content.trim()) {
-      alert('Please paste some content to analyze');
+    if (!content.trim() && !url.trim()) {
+      alert('Please paste some content or enter a URL to analyze');
       return;
     }
     setLoading(true);
@@ -245,7 +246,7 @@ function ContentAnalysis() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(url.trim() ? { url: url.trim() } : { content }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -294,6 +295,21 @@ function ContentAnalysis() {
           </div>
         </div>
 
+        <label htmlFor="content-url" style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          Analyze a URL instead
+        </label>
+        <input
+          id="content-url"
+          type="text"
+          className="input"
+          placeholder="e.g., yourblog.com/post-title"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#666' }}>
+          If you enter a URL, its page content is fetched and analyzed instead of the text pasted below.
+        </p>
+
         <textarea
           className="textarea"
           aria-label="Content to analyze"
@@ -319,6 +335,12 @@ function ContentAnalysis() {
         <div className="results">
           <div className="card" style={{ backgroundColor: 'var(--mint)' }}>
             <h3>🎯 AEO Analysis Results</h3>
+            {result.sourceUrl && (
+              <p style={{ marginBottom: '1rem' }}>
+                <strong>Source:</strong> {result.pageTitle ? `${result.pageTitle} — ` : ''}
+                {result.sourceUrl}
+              </p>
+            )}
             <div className="stats-grid">
               <div className="stat-card">
                 <span className="stat-number">{result.score}</span>
@@ -329,7 +351,7 @@ function ContentAnalysis() {
                 <span className="stat-label">Grade</span>
               </div>
               <div className="stat-card">
-                <span className="stat-number">{content.split(' ').length}</span>
+                <span className="stat-number">{result.wordCount}</span>
                 <span className="stat-label">Words</span>
               </div>
               <div className="stat-card">

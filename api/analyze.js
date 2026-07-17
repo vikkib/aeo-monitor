@@ -28,16 +28,88 @@ const TOOL = {
   },
 };
 
+function extractTextFromHtml(html) {
+  const withoutNoise = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+
+  const titleMatch = withoutNoise.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').trim() : null;
+
+  const text = withoutNoise
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return { title, text };
+}
+
+async function fetchUrlContent(url) {
+  const normalized = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  let target;
+  try {
+    target = new URL(normalized);
+  } catch {
+    throw new Error('That URL doesn\'t look valid');
+  }
+  if (!['http:', 'https:'].includes(target.protocol)) {
+    throw new Error('Only http/https URLs are supported');
+  }
+
+  let res;
+  try {
+    res = await fetch(target.toString(), {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AEOMonitorBot/1.0)' },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new Error("Couldn't reach that URL - check it's correct and publicly accessible");
+  }
+  if (!res.ok) {
+    throw new Error(`Couldn't fetch that URL (${res.status})`);
+  }
+  const html = await res.text();
+  const { title, text } = extractTextFromHtml(html);
+  if (!text || text.length < 50) {
+    throw new Error('Could not find readable content on that page');
+  }
+  return { title, text: text.slice(0, 15000) };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
-  const { content } = req.body ?? {};
-  if (!content || typeof content !== 'string' || !content.trim()) {
-    res.status(400).json({ error: 'content is required' });
+  const { content, url } = req.body ?? {};
+  if ((!content || !content.trim()) && (!url || !url.trim())) {
+    res.status(400).json({ error: 'content or url is required' });
     return;
+  }
+
+  let textToAnalyze = content;
+  let sourceUrl = null;
+  let pageTitle = null;
+
+  if (url && url.trim()) {
+    try {
+      const fetched = await fetchUrlContent(url.trim());
+      textToAnalyze = fetched.text;
+      pageTitle = fetched.title;
+      sourceUrl = url.trim();
+    } catch (err) {
+      res.status(422).json({ error: err.message });
+      return;
+    }
   }
 
   try {
@@ -55,7 +127,7 @@ Analyze the following content and submit your analysis via the submit_aeo_analys
 
 Content:
 """
-${content}
+${textToAnalyze}
 """`,
         },
       ],
@@ -67,7 +139,7 @@ ${content}
       return;
     }
 
-    res.status(200).json(toolUse.input);
+    res.status(200).json({ ...toolUse.input, sourceUrl, pageTitle, wordCount: textToAnalyze.split(/\s+/).filter(Boolean).length });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Analysis failed' });
