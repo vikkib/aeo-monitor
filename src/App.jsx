@@ -49,8 +49,8 @@ function Dashboard({ setActiveTab }) {
               <span className="mode-icon">🔍</span>
               <h3>TEST SEARCH VISIBILITY</h3>
               <p>
-                Enter search queries to see if your website appears in ChatGPT, Perplexity, and
-                Google AI results. Track your rankings over time.
+                Enter search queries to see if your website appears in ChatGPT and Perplexity
+                results. Track your rankings over time.
               </p>
               <div style={{ marginTop: '1rem' }}>
                 <strong>Example:</strong> "How to build a SaaS business"
@@ -101,6 +101,7 @@ function SearchTests() {
   const [website, setWebsite] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const runTest = async () => {
     if (!query || !website) {
@@ -108,17 +109,23 @@ function SearchTests() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setResult({
-        query,
-        website,
-        chatgpt: { found: true, position: 2, confidence: 85 },
-        perplexity: { found: true, position: 1, confidence: 92 },
-        googleai: { found: false, position: null, confidence: 0 },
-        timestamp: new Date().toISOString(),
+    setError(null);
+    try {
+      const res = await fetch('/api/search-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, website }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed (${res.status})`);
+      }
+      setResult(await res.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -151,6 +158,9 @@ function SearchTests() {
           <button className="btn btn-primary" onClick={runTest} disabled={loading}>
             {loading ? '🔄 TESTING...' : '🚀 TEST VISIBILITY'}
           </button>
+          {error && (
+            <p style={{ color: 'red', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
+          )}
         </div>
 
         {result && (
@@ -187,49 +197,28 @@ function SearchTests() {
                   {result.perplexity.confidence}% confidence
                 </div>
               </div>
-              <div
-                className="stat-card"
-                style={{ backgroundColor: result.googleai.found ? 'var(--mint)' : 'var(--mauve)' }}
-              >
-                <span className="stat-number">
-                  {result.googleai.found ? `#${result.googleai.position}` : 'NOT FOUND'}
-                </span>
-                <span className="stat-label">Google AI</span>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  {result.googleai.confidence}% confidence
-                </div>
-              </div>
             </div>
 
             <div className="card">
               <h4>💡 Recommendations</h4>
               <ul style={{ paddingLeft: '1.5rem' }}>
-                <li>Your content ranks well in Perplexity - great job!</li>
-                <li>To improve ChatGPT ranking, add more specific examples and case studies</li>
-                <li>Google AI doesn't show your content - consider optimizing for featured snippets</li>
-                <li>Track this query weekly to monitor progress</li>
+                {result.chatgpt.found && (
+                  <li>You rank #{result.chatgpt.position} in ChatGPT for this query - solid visibility.</li>
+                )}
+                {!result.chatgpt.found && (
+                  <li>ChatGPT didn't cite your site for this query - try a more specific, answer-shaped query or add clearer direct-answer content.</li>
+                )}
+                {result.perplexity.found && (
+                  <li>You rank #{result.perplexity.position} in Perplexity for this query - solid visibility.</li>
+                )}
+                {!result.perplexity.found && (
+                  <li>Perplexity didn't cite your site for this query - consider adding more citable data, sources, or specifics.</li>
+                )}
+                <li>Track this query periodically to monitor changes over time.</li>
               </ul>
             </div>
           </div>
         )}
-      </div>
-
-      <div className="card">
-        <h3>Recent Search Tests</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ padding: '1rem', border: '2px solid var(--black)', backgroundColor: 'var(--white)' }}>
-            <strong>"saas marketing strategies"</strong> → myblog.com
-            <br />
-            <span style={{ color: 'var(--slate-blue)' }}>Found #5 in ChatGPT, #1 in Perplexity</span>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>2 hours ago</div>
-          </div>
-          <div style={{ padding: '1rem', border: '2px solid var(--black)', backgroundColor: 'var(--white)' }}>
-            <strong>"growth hacking techniques"</strong> → myblog.com
-            <br />
-            <span style={{ color: 'var(--slate-blue)' }}>Found #1 in ChatGPT, #3 in Perplexity</span>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>1 day ago</div>
-          </div>
-        </div>
       </div>
     </div>
   );
