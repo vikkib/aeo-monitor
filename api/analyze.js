@@ -67,12 +67,18 @@ async function fetchUrlContent(url) {
   let res;
   try {
     res = await fetch(target.toString(), {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AEOMonitorBot/1.0)' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
       redirect: 'follow',
       signal: AbortSignal.timeout(10000),
     });
   } catch {
     throw new Error("Couldn't reach that URL - check it's correct and publicly accessible");
+  }
+  if (res.status === 403 || res.status === 401) {
+    throw new Error("That site is blocking automated requests - try pasting the content directly instead");
   }
   if (!res.ok) {
     throw new Error(`Couldn't fetch that URL (${res.status})`);
