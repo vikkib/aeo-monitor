@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { recordHistory } from './_history.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -139,7 +140,20 @@ ${textToAnalyze}
       return;
     }
 
-    res.status(200).json({ ...toolUse.input, sourceUrl, pageTitle, wordCount: textToAnalyze.split(/\s+/).filter(Boolean).length });
+    const wordCount = textToAnalyze.split(/\s+/).filter(Boolean).length;
+    const result = { ...toolUse.input, sourceUrl, pageTitle, wordCount };
+
+    await recordHistory('history:content', {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: pageTitle || (sourceUrl ? sourceUrl : `${textToAnalyze.slice(0, 60)}${textToAnalyze.length > 60 ? '…' : ''}`),
+      sourceUrl,
+      score: result.score,
+      grade: result.grade,
+      wordCount,
+      date: new Date().toISOString(),
+    });
+
+    res.status(200).json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Analysis failed' });

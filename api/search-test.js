@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { recordHistory } from './_history.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -86,11 +87,22 @@ export default async function handler(req, res) {
     }),
   ]);
 
+  const timestamp = new Date().toISOString();
+
+  await recordHistory('history:search', {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    query,
+    website,
+    chatgpt,
+    perplexity,
+    date: timestamp,
+  });
+
   res.status(200).json({
     query,
     website,
     chatgpt,
     perplexity,
-    timestamp: new Date().toISOString(),
+    timestamp,
   });
 }

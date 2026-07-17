@@ -1,8 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 function Dashboard({ setActiveTab }) {
   const [hovered, setHovered] = useState(null);
+  const [stats, setStats] = useState({ searchTests: 0, contentAnalyses: 0, avgScore: 0, topRankings: 0 });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/history');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const content = data.content ?? [];
+        const search = data.search ?? [];
+        const avgScore = content.length
+          ? Math.round(content.reduce((sum, item) => sum + (item.score ?? 0), 0) / content.length)
+          : 0;
+        const topRankings = search.filter(
+          (item) => (item.chatgpt?.found && item.chatgpt.position <= 3) || (item.perplexity?.found && item.perplexity.position <= 3)
+        ).length;
+        setStats({ searchTests: search.length, contentAnalyses: content.length, avgScore, topRankings });
+      } catch {
+        // Dashboard stats are non-critical; leave zeros on failure.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectMode = (mode) => {
     setHovered(mode);
@@ -21,19 +48,19 @@ function Dashboard({ setActiveTab }) {
 
       <section className="stats-grid">
         <div className="stat-card">
-          <span className="stat-number">24</span>
+          <span className="stat-number">{stats.searchTests}</span>
           <span className="stat-label">Search Tests</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">12</span>
+          <span className="stat-number">{stats.contentAnalyses}</span>
           <span className="stat-label">Content Analyses</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">78</span>
+          <span className="stat-number">{stats.avgScore}</span>
           <span className="stat-label">Avg AEO Score</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">5</span>
+          <span className="stat-number">{stats.topRankings}</span>
           <span className="stat-label">Top Rankings</span>
         </div>
       </section>
@@ -430,18 +457,43 @@ function ContentAnalysis() {
 
 function History() {
   const [tab, setTab] = useState('content');
+  const [contentHistory, setContentHistory] = useState([]);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const contentHistory = [
-    { id: 1, title: 'SaaS Marketing Strategies Guide', type: 'Blog Post', score: 78, date: '2024-01-15', improvement: '+12' },
-    { id: 2, title: 'Growth Hacking for Startups', type: 'Article', score: 85, date: '2024-01-14', improvement: '+8' },
-    { id: 3, title: 'Product Launch Checklist', type: 'Web Page', score: 72, date: '2024-01-13', improvement: '+15' },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/history');
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        const data = await res.json();
+        if (cancelled) return;
+        setContentHistory(data.content ?? []);
+        setSearchHistory(data.search ?? []);
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const searchHistory = [
-    { id: 1, query: 'saas marketing strategies', website: 'myblog.com', chatgpt: '#5', perplexity: '#1', googleai: 'Not Found', date: '2024-01-15' },
-    { id: 2, query: 'growth hacking techniques', website: 'myblog.com', chatgpt: '#1', perplexity: '#3', googleai: '#8', date: '2024-01-14' },
-    { id: 3, query: 'startup product launch', website: 'myblog.com', chatgpt: '#3', perplexity: '#2', googleai: 'Not Found', date: '2024-01-13' },
-  ];
+  const avgScore = contentHistory.length
+    ? Math.round(contentHistory.reduce((sum, item) => sum + (item.score ?? 0), 0) / contentHistory.length)
+    : 0;
+  const top3Rankings = searchHistory.filter(
+    (item) => (item.chatgpt?.found && item.chatgpt.position <= 3) || (item.perplexity?.found && item.perplexity.position <= 3)
+  ).length;
+
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="history">
@@ -464,92 +516,102 @@ function History() {
           </button>
         </div>
 
-        {tab === 'content' && (
+        {loading && <p>Loading history…</p>}
+        {error && (
+          <p style={{ color: 'var(--error-red)', fontWeight: 'bold' }}>⚠️ {error}</p>
+        )}
+
+        {!loading && !error && tab === 'content' && (
           <div>
             <h3>Content Analysis History</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {contentHistory.map((item) => (
-                <div className="card" style={{ backgroundColor: 'var(--white)' }} key={item.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0' }}>{item.title}</h4>
-                      <div style={{ color: 'var(--slate-blue)', fontWeight: 'bold' }}>{item.type}</div>
-                      <div style={{ fontSize: '0.9rem', color: '#666' }}>{item.date}</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="stat-number" style={{ fontSize: '2rem' }}>{item.score}</div>
-                      <div className="stat-label">AEO Score</div>
-                      <div style={{ color: 'green', fontWeight: 'bold' }}>{item.improvement} improvement</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>VIEW</button>
-                      <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>REANALYZE</button>
+            {contentHistory.length === 0 ? (
+              <p>No content analyses yet — run one from the Content tab and it'll show up here.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {contentHistory.map((item) => (
+                  <div className="card" style={{ backgroundColor: 'var(--white)' }} key={item.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.5rem 0' }}>{item.title}</h4>
+                        {item.sourceUrl && (
+                          <div style={{ color: 'var(--slate-blue)', fontWeight: 'bold' }}>{item.sourceUrl}</div>
+                        )}
+                        <div style={{ fontSize: '0.9rem', color: '#666' }}>{formatDate(item.date)}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div className="stat-number" style={{ fontSize: '2rem' }}>{item.score}</div>
+                        <div className="stat-label">AEO Score ({item.grade})</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {tab === 'search' && (
+        {!loading && !error && tab === 'search' && (
           <div>
             <h3>Search Visibility History</h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '4px solid var(--black)' }}>
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--slate-blue)', color: 'white' }}>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'left' }}>Query</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'left' }}>Website</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>ChatGPT</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Perplexity</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Google AI</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Date</th>
-                    <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {searchHistory.map((item) => (
-                    <tr style={{ backgroundColor: 'var(--white)' }} key={item.id}>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', fontWeight: 'bold' }}>"{item.query}"</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)' }}>{item.website}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.chatgpt.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.chatgpt}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.perplexity.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.perplexity}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.googleai.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.googleai}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', fontSize: '0.9rem' }}>{item.date}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>RETEST</button>
-                      </td>
+            {searchHistory.length === 0 ? (
+              <p>No search tests yet — run one from the Search Tests tab and it'll show up here.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '4px solid var(--black)' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--slate-blue)', color: 'white' }}>
+                      <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'left' }}>Query</th>
+                      <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'left' }}>Website</th>
+                      <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>ChatGPT</th>
+                      <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Perplexity</th>
+                      <th style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {searchHistory.map((item) => (
+                      <tr style={{ backgroundColor: 'var(--white)' }} key={item.id}>
+                        <td style={{ padding: '1rem', border: '2px solid var(--black)', fontWeight: 'bold' }}>"{item.query}"</td>
+                        <td style={{ padding: '1rem', border: '2px solid var(--black)' }}>{item.website}</td>
+                        <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.chatgpt?.found ? 'green' : 'var(--error-red)', fontWeight: 'bold' }}>
+                          {item.chatgpt?.found ? `#${item.chatgpt.position}` : 'Not Found'}
+                        </td>
+                        <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.perplexity?.found ? 'green' : 'var(--error-red)', fontWeight: 'bold' }}>
+                          {item.perplexity?.found ? `#${item.perplexity.position}` : 'Not Found'}
+                        </td>
+                        <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', fontSize: '0.9rem' }}>{formatDate(item.date)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="card">
-        <h3>📊 Progress Trends</h3>
-        <div className="stats-grid">
-          <div className="stat-card" style={{ backgroundColor: 'var(--mint)' }}>
-            <span className="stat-number">+18%</span>
-            <span className="stat-label">Avg Score Improvement</span>
-          </div>
-          <div className="stat-card" style={{ backgroundColor: 'var(--periwinkle)' }}>
-            <span className="stat-number">7</span>
-            <span className="stat-label">Top 3 Rankings</span>
-          </div>
-          <div className="stat-card" style={{ backgroundColor: 'var(--mint)' }}>
-            <span className="stat-number">24</span>
-            <span className="stat-label">Total Analyses</span>
-          </div>
-          <div className="stat-card" style={{ backgroundColor: 'var(--periwinkle)' }}>
-            <span className="stat-number">12</span>
-            <span className="stat-label">Queries Tracked</span>
+      {!loading && !error && (
+        <div className="card">
+          <h3>📊 Progress Trends</h3>
+          <div className="stats-grid">
+            <div className="stat-card" style={{ backgroundColor: 'var(--mint)' }}>
+              <span className="stat-number">{avgScore}</span>
+              <span className="stat-label">Avg AEO Score</span>
+            </div>
+            <div className="stat-card" style={{ backgroundColor: 'var(--periwinkle)' }}>
+              <span className="stat-number">{top3Rankings}</span>
+              <span className="stat-label">Top 3 Rankings</span>
+            </div>
+            <div className="stat-card" style={{ backgroundColor: 'var(--mint)' }}>
+              <span className="stat-number">{contentHistory.length}</span>
+              <span className="stat-label">Total Analyses</span>
+            </div>
+            <div className="stat-card" style={{ backgroundColor: 'var(--periwinkle)' }}>
+              <span className="stat-number">{searchHistory.length}</span>
+              <span className="stat-label">Queries Tracked</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
