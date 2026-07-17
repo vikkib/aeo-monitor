@@ -333,8 +333,11 @@ function ContentAnalysis() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
-        <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#666' }}>
+        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: '#666' }}>
           If you enter a URL, its page content is fetched and analyzed instead of the text pasted below.
+        </p>
+        <p style={{ margin: '0 0 1.5rem', fontSize: '0.9rem', color: '#666' }}>
+          Some sites block automated fetches (you'll see a "403" error) - if that happens, paste the content into the box below instead.
         </p>
 
         <textarea
