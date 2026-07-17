@@ -239,6 +239,7 @@ function ContentAnalysis() {
   const [content, setContent] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const analyze = async () => {
     if (!content.trim()) {
@@ -246,33 +247,23 @@ function ContentAnalysis() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setResult({
-        score: 72,
-        grade: 'B',
-        strengths: [
-          'Clear structure with headers and subheaders',
-          'Good use of specific examples and data',
-          'Includes actionable advice',
-          'Proper length for comprehensive coverage',
-        ],
-        weaknesses: [
-          'Missing FAQ section for common questions',
-          'Could use more bullet points for scannability',
-          'Lacks comparison tables or charts',
-          'No clear call-to-action at the end',
-        ],
-        recommendations: [
-          'Add an FAQ section addressing common reader questions',
-          'Break up long paragraphs with bullet points',
-          'Include comparison tables for different approaches',
-          'Add a clear next step or call-to-action',
-          'Optimize for voice search with natural language',
-        ],
-        categories: { structure: 85, clarity: 78, completeness: 65, actionability: 80 },
+    setError(null);
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed (${res.status})`);
+      }
+      setResult(await res.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-    }, 3000);
+    }
   };
 
   return (
@@ -325,6 +316,9 @@ function ContentAnalysis() {
         >
           {loading ? '🔄 ANALYZING YOUR CONTENT...' : '🚀 ANALYZE MY CONTENT'}
         </button>
+        {error && (
+          <p style={{ color: 'red', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
+        )}
       </div>
 
       {result && (
