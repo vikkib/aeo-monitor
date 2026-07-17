@@ -1,11 +1,14 @@
 :root {
-  --slate-blue: #7683a5;
+  /* Darkened from the original #7683a5 so white text on this background
+     (buttons, active nav, badges, table headers) clears WCAG AA 4.5:1. */
+  --slate-blue: #5b6684;
   --mauve: #977a8e;
   --mint: #97dcdb;
   --periwinkle: #a9b3cd;
   --black: #000000;
   --white: #ffffff;
   --gray-light: #f8f9fa;
+  --error-red: #c0392b;
 }
 
 .app {
@@ -206,7 +209,10 @@
   font-family: Truculenta, sans-serif;
   font-size: 3rem;
   font-weight: 900;
-  color: var(--slate-blue);
+  /* black instead of slate-blue: stat-cards sit on mint/mauve/periwinkle
+     backgrounds depending on state, and slate-blue fails WCAG AA contrast
+     against several of them (e.g. 1.01:1 on mauve) - black passes all. */
+  color: var(--black);
   display: block;
 }
 
@@ -232,6 +238,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  /* .mode-card is a <button> for keyboard accessibility; undo the
+     browser's default button font/color so children render the same
+     as the rest of the page. */
+  width: 100%;
+  font: inherit;
+  color: inherit;
 }
 
 .mode-card:hover {

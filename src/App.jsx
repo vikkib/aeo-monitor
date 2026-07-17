@@ -42,11 +42,12 @@ function Dashboard({ setActiveTab }) {
         <div className="card">
           <h2>Choose Your AEO Monitoring Mode</h2>
           <div className="mode-grid">
-            <div
+            <button
+              type="button"
               className={`mode-card ${hovered === 'search' ? 'active' : ''}`}
               onClick={() => selectMode('search')}
             >
-              <span className="mode-icon">🔍</span>
+              <span className="mode-icon" aria-hidden="true">🔍</span>
               <h3>TEST SEARCH VISIBILITY</h3>
               <p>
                 Enter search queries to see if your website appears in ChatGPT and Perplexity
@@ -55,13 +56,14 @@ function Dashboard({ setActiveTab }) {
               <div style={{ marginTop: '1rem' }}>
                 <strong>Example:</strong> "How to build a SaaS business"
               </div>
-            </div>
+            </button>
 
-            <div
+            <button
+              type="button"
               className={`mode-card ${hovered === 'content' ? 'active' : ''}`}
               onClick={() => selectMode('content')}
             >
-              <span className="mode-icon">📝</span>
+              <span className="mode-icon" aria-hidden="true">📝</span>
               <h3>ANALYZE CONTENT</h3>
               <p>
                 Paste your existing blog posts, articles, or web pages to get detailed AEO
@@ -70,7 +72,7 @@ function Dashboard({ setActiveTab }) {
               <div style={{ marginTop: '1rem' }}>
                 <strong>Paste:</strong> Blog posts, articles, product descriptions
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </section>
@@ -135,20 +137,22 @@ function SearchTests() {
         <p>Enter a search query and your website to see if you appear in AI search results.</p>
 
         <div style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          <label htmlFor="search-query" style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>
             Search Query
           </label>
           <input
+            id="search-query"
             type="text"
             className="input"
             placeholder="e.g., How to build a successful SaaS business"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          <label htmlFor="search-website" style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>
             Your Website URL
           </label>
           <input
+            id="search-website"
             type="text"
             className="input"
             placeholder="e.g., yourblog.com"
@@ -159,7 +163,7 @@ function SearchTests() {
             {loading ? '🔄 TESTING...' : '🚀 TEST VISIBILITY'}
           </button>
           {error && (
-            <p style={{ color: 'red', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
+            <p style={{ color: 'var(--error-red)', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
           )}
         </div>
 
@@ -292,6 +296,7 @@ function ContentAnalysis() {
 
         <textarea
           className="textarea"
+          aria-label="Content to analyze"
           placeholder={`📝 Copy your blog post, article, or webpage text and paste it here...\n\nExample: 'Building a successful SaaS business requires careful planning and execution. First, you need to identify a real problem that people are willing to pay to solve...'\n\nThe more content you provide, the more detailed analysis you'll receive!`}
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -306,7 +311,7 @@ function ContentAnalysis() {
           {loading ? '🔄 ANALYZING YOUR CONTENT...' : '🚀 ANALYZE MY CONTENT'}
         </button>
         {error && (
-          <p style={{ color: 'red', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
+          <p style={{ color: 'var(--error-red)', marginTop: '1rem', fontWeight: 'bold' }}>⚠️ {error}</p>
         )}
       </div>
 
@@ -486,9 +491,9 @@ function History() {
                     <tr style={{ backgroundColor: 'var(--white)' }} key={item.id}>
                       <td style={{ padding: '1rem', border: '2px solid var(--black)', fontWeight: 'bold' }}>"{item.query}"</td>
                       <td style={{ padding: '1rem', border: '2px solid var(--black)' }}>{item.website}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.chatgpt.includes('Not') ? 'red' : 'green', fontWeight: 'bold' }}>{item.chatgpt}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.perplexity.includes('Not') ? 'red' : 'green', fontWeight: 'bold' }}>{item.perplexity}</td>
-                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.googleai.includes('Not') ? 'red' : 'green', fontWeight: 'bold' }}>{item.googleai}</td>
+                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.chatgpt.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.chatgpt}</td>
+                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.perplexity.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.perplexity}</td>
+                      <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', color: item.googleai.includes('Not') ? 'var(--error-red)' : 'green', fontWeight: 'bold' }}>{item.googleai}</td>
                       <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center', fontSize: '0.9rem' }}>{item.date}</td>
                       <td style={{ padding: '1rem', border: '2px solid var(--black)', textAlign: 'center' }}>
                         <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>RETEST</button>
@@ -574,11 +579,9 @@ function Pricing() {
             style={{
               backgroundColor: plan.popular ? 'var(--mint)' : 'var(--white)',
               position: 'relative',
-              cursor: 'pointer',
               transform: plan.popular ? 'scale(1.05)' : 'scale(1)',
               transition: 'all 0.2s ease',
             }}
-            onClick={() => setSelected(plan.id)}
           >
             {plan.popular && (
               <div
@@ -616,7 +619,12 @@ function Pricing() {
                 <li key={i} style={{ padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>✅ {f}</li>
               ))}
             </ul>
-            <button className={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'}`} style={{ width: '100%', fontSize: '1.1rem', padding: '1rem' }}>
+            <button
+              className={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ width: '100%', fontSize: '1.1rem', padding: '1rem' }}
+              onClick={() => setSelected(plan.id)}
+              aria-pressed={selected === plan.id}
+            >
               {plan.buttonText}
             </button>
           </div>
@@ -655,17 +663,17 @@ function Pricing() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
           <div style={{ padding: '1.5rem', border: '3px solid var(--black)', backgroundColor: 'var(--mint)' }}>
             <h4>SaaS Startups</h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--slate-blue)' }}>$50-200/month</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--black)' }}>$50-200/month</div>
             <p>High value: Organic discovery reduces CAC. Need to appear when customers search for solutions.</p>
           </div>
           <div style={{ padding: '1.5rem', border: '3px solid var(--black)', backgroundColor: 'var(--periwinkle)' }}>
             <h4>Content Agencies</h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--slate-blue)' }}>$100-500/month</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--black)' }}>$100-500/month</div>
             <p>High value: New service offering for clients. Staying ahead of AI search trends.</p>
           </div>
           <div style={{ padding: '1.5rem', border: '3px solid var(--black)', backgroundColor: 'var(--mint)' }}>
             <h4>Solo Creators</h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--slate-blue)' }}>$25-100/month</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--black)' }}>$25-100/month</div>
             <p>High value: Thought leadership positioning. Limited budget but need competitive edge.</p>
           </div>
         </div>
