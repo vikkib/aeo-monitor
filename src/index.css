@@ -1,9 +1,44 @@
-body {
+* {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+  color: #1c1e21;
+  line-height: 1.6;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Truculenta, sans-serif;
+  font-weight: 700;
+}
+
+button {
+  font-family: Raleway, sans-serif;
+}
+
+.neobrutal-border {
+  border: 4px solid #000;
+}
+
+.neobrutal-shadow {
+  box-shadow: 8px 8px #000;
+}
+
+.neobrutal-shadow-hover:hover {
+  box-shadow: 12px 12px #000;
+  transform: translate(-2px, -2px);
+  transition: all 0.2s ease;
+}
