@@ -206,7 +206,7 @@ function SearchTests() {
             <div className="stats-grid">
               <div
                 className="stat-card"
-                style={{ backgroundColor: result.chatgpt.found ? 'var(--mint)' : 'var(--mauve)' }}
+                style={{ backgroundColor: result.chatgpt.found ? 'var(--mint)' : 'var(--mauve)', color: 'var(--black)' }}
               >
                 <span className="stat-number">
                   {result.chatgpt.found ? `#${result.chatgpt.position}` : 'NOT FOUND'}
@@ -218,7 +218,7 @@ function SearchTests() {
               </div>
               <div
                 className="stat-card"
-                style={{ backgroundColor: result.perplexity.found ? 'var(--mint)' : 'var(--mauve)' }}
+                style={{ backgroundColor: result.perplexity.found ? 'var(--mint)' : 'var(--mauve)', color: 'var(--black)' }}
               >
                 <span className="stat-number">
                   {result.perplexity.found ? `#${result.perplexity.position}` : 'NOT FOUND'}
@@ -430,7 +430,7 @@ function ContentAnalysis() {
                 ))}
               </ul>
             </div>
-            <div className="card" style={{ backgroundColor: 'var(--mauve)' }}>
+            <div className="card" style={{ backgroundColor: 'var(--mauve)', color: 'var(--black)' }}>
               <h4>⚠️ Areas for Improvement</h4>
               <ul style={{ paddingLeft: '1.5rem' }}>
                 {result.weaknesses.map((w, i) => (
@@ -685,9 +685,9 @@ function Pricing() {
               <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{plan.name}</h3>
               <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--slate-blue)', marginBottom: '0.5rem' }}>
                 {plan.price}
-                <span style={{ fontSize: '1rem', color: '#666' }}>{plan.period}</span>
+                <span style={{ fontSize: '1rem', color: '#4d4d4d' }}>{plan.period}</span>
               </div>
-              <p style={{ color: '#666' }}>{plan.description}</p>
+              <p style={{ color: '#4d4d4d' }}>{plan.description}</p>
             </div>
             <div style={{ marginBottom: '2rem' }}>
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
